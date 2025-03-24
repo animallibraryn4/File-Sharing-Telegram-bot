@@ -5,7 +5,7 @@ import re
 # Dictionary to store formats temporarily
 flink_formats = {}
 
-@Client.on_message(filters.command("flink") & filters.user(ADMIN_ID))
+@Client.on_message(filters.command("flink") & filters.user(OWNER_ID))
 async def flink_command(client, message: Message):
     chat_id = message.chat.id
     flink_formats[chat_id] = {}  # Reset format for new request
