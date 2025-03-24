@@ -45,8 +45,8 @@ async def batch(client: Client, message: Message):
 
 @Bot.on_message(filters.private & filters.user(ADMINS) & filters.command('genlink'))
 async def link_generator(client: Client, message: Message):
-    # Check if the command is sent with a file
-    if message.reply_to_message and (message.reply_to_message.document or message.reply_to_message.video or message.reply_to_message.audio):
+    # Check if the command is sent as a reply to a file
+    if message.reply_to_message:
         channel_message = message.reply_to_message
         msg_id = await get_message_id(client, channel_message)
         
@@ -58,21 +58,23 @@ async def link_generator(client: Client, message: Message):
         else:
             await message.reply("❌ Error\n\nThis file is not from my DB Channel", quote=True)
     else:
-        # Original behavior for forwarded messages or links
-        while True:
-            try:
-                channel_message = await client.ask(text = "Select your file and send /genlink command as a reply to it\n\nor\n\nForward Message from the DB Channel ⏩ (with Quotes)..\nor Send the DB Channel Post link\nType /sgen for stopping.", chat_id = message.from_user.id, filters=(filters.forwarded | (filters.text & ~filters.forwarded)), timeout=60)
-            except Exception:
-                return
+        # If not a reply, ask to forward a message
+        try:
+            channel_message = await client.ask(
+                text="Please reply to a file with /genlink command\n\nor\n\nForward a message from DB Channel ⏩ (with Quotes)\nor Send the DB Channel Post link\nType /sgen to cancel",
+                chat_id=message.from_user.id,
+                filters=(filters.forwarded | (filters.text & ~filters.forwarded)),
+                timeout=60
+            )
             if channel_message.text == "/sgen":
                 return
             msg_id = await get_message_id(client, channel_message)
             if msg_id:
-                break
+                base64_string = await encode(f"get-{msg_id * abs(client.db_channel.id)}")
+                link = f"https://t.me/{client.username}?start={base64_string}"
+                reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🔁 Share URL", url=f'https://telegram.me/share/url?url={link}')]])
+                await message.reply_text(f"<b>🧑‍💻 Here is your code : \n<code>{base64_string}</code></b>\n\n<b>🔗 Here is your link : </b>\n{link}", quote=True, reply_markup=reply_markup)
             else:
-                await channel_message.reply("❌ Error\n\nthis Forwarded Post is not from my DB Channel or this Link is not taken from DB Channel", quote = True)
-                continue
-        base64_string = await encode(f"get-{msg_id * abs(client.db_channel.id)}")
-        link = f"https://t.me/{client.username}?start={base64_string}"
-        reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🔁 Share URL", url=f'https://telegram.me/share/url?url={link}')]])
-        await channel_message.reply_text(f"<b>🧑‍💻 Here is your code : \n<code>{base64_string}</code></b>\n\n<b>🔗 Here is your link : </b>\n{link}", quote=True, reply_markup=reply_markup)
+                await channel_message.reply("❌ Error\n\nThis is not from my DB Channel", quote=True)
+        except Exception:
+            return
