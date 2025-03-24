@@ -79,6 +79,11 @@ async def get_messages(client, message_ids):
     return messages
 
 async def get_message_id(client, message):
+    # Check if it's a direct message (not forwarded)
+    if not message.forward_from_chat and not message.forward_sender_name:
+        return message.id
+    
+    # Original forwarded message check
     if message.forward_from_chat:
         if message.forward_from_chat.id == client.db_channel.id:
             return message.forward_from_message_id
@@ -88,7 +93,7 @@ async def get_message_id(client, message):
         return 0
     elif message.text:
         pattern = r"https://t.me/(?:c/)?(.*)/(\d+)"
-        matches = re.match(pattern,message.text)
+        matches = re.match(pattern, message.text)
         if not matches:
             return 0
         channel_id = matches.group(1)
