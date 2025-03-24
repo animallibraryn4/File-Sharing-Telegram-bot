@@ -1,12 +1,12 @@
-from config import OWNER_ID
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
 import re
+from bot import Bot  # Ensure this matches your bot instance
+from config import ADMINS  # Ensure this is a list
 
-# Dictionary to store formats temporarily
 flink_formats = {}
 
-@Client.on_message(filters.command("flink") & filters.user(OWNER_ID))
+@Bot.on_message(filters.command("flink") & filters.user(ADMINS))
 async def flink_command(client, message: Message):
     chat_id = message.chat.id
     flink_formats[chat_id] = {}  # Reset format for new request
@@ -25,7 +25,7 @@ async def flink_command(client, message: Message):
         reply_markup=InlineKeyboardMarkup(buttons)
     )
 
-@Client.on_callback_query(filters.regex("set_format"))
+@Bot.on_callback_query(filters.regex("set_format"))
 async def set_format_callback(client, query):
     await query.message.edit_text(
         "📌 Send the link format in this style:\n\n"
@@ -33,7 +33,7 @@ async def set_format_callback(client, query):
         "Each value represents the number of messages for that quality."
     )
 
-@Client.on_message(filters.text & filters.user(OWNER_ID))
+@Bot.on_message(filters.text & filters.user(ADMINS))
 async def save_format(client, message: Message):
     chat_id = message.chat.id
     if chat_id in flink_formats:
@@ -47,7 +47,7 @@ async def save_format(client, message: Message):
         else:
             await message.reply_text("❌ Invalid format! Use: `480p = 2, 720p = 2, 1080p = 2`")
 
-@Client.on_callback_query(filters.regex("start_process"))
+@Bot.on_callback_query(filters.regex("start_process"))
 async def start_process(client, query):
     chat_id = query.message.chat.id
     if chat_id not in flink_formats or not flink_formats[chat_id]:
@@ -58,7 +58,7 @@ async def start_process(client, query):
         "📌 Send the post link from the database channel."
     )
 
-@Client.on_message(filters.text & filters.regex(r"https://t\.me/c/\d+/\d+") & filters.user(OWNER_ID))
+@Bot.on_message(filters.text & filters.regex(r"https://t\.me/c/\d+/\d+") & filters.user(ADMINS))
 async def generate_formatted_links(client, message: Message):
     chat_id = message.chat.id
     if chat_id not in flink_formats or not flink_formats[chat_id]:
