@@ -49,7 +49,11 @@ async def link_generator(client: Client, message: Message):
         return
     
     replied_message = message.reply_to_message
-    msg_id = replied_message.id
+    msg_id = await get_message_id(client, replied_message)
+    
+    if not msg_id:
+        await message.reply_text("❌ Error: Could not generate link for this message")
+        return
     
     # Generate link and code
     base64_string = await encode(f"get-{msg_id * abs(client.db_channel.id)}")
