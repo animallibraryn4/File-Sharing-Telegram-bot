@@ -3,25 +3,93 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from bot import Bot
 from config import ADMINS
 from helper_func import encode, get_message_id
-import base64
+import re
+
+@Bot.on_message(filters.private & filters.user(ADMINS) & filters.command('batch'))
+async def batch(client: Client, message: Message):
+    while True:
+        try:
+            first_message = await client.ask(text = "Forward the First Message from DB Channel ⏩ (with Quotes)..\n\nor Send the DB Channel Post Link\nUse /sbatch for stopping.", chat_id = message.from_user.id, filters=(filters.forwarded | (filters.text & ~filters.forwarded)), timeout=60)
+        except Exception as e:
+            print(e)
+            return
+        if first_message.text == "/sbatch":
+            return
+        
+        # Extract channel link if provided
+        channel_link = None
+        if not first_message.forward_from_chat and first_message.text:
+            match = re.search(r'(https?://t\.me/[a-zA-Z0-9_]+)', first_message.text)
+            if match:
+                channel_link = match.group(1)
+        
+        f_msg_id = await get_message_id(client, first_message)
+        
+        if f_msg_id:
+            break
+        else:
+            await first_message.reply("❌ Error\n\nthis Forwarded Post is not from my DB Channel or this Link is taken from DB Channel", quote = True)
+            continue
+
+    while True:
+        try:
+            second_message = await client.ask(text = "Forward the Last Message from DB Channel ⏩ (with Quotes)..\nor Send the DB Channel Post link\nUse /sbatch for stopping.", chat_id = message.from_user.id, filters=(filters.forwarded | (filters.text & ~filters.forwarded)), timeout=60)
+        except:
+            return
+        if second_message.text == "/sbatch":
+            return
+        
+        # Extract channel link if provided (for second message)
+        if not second_message.forward_from_chat and second_message.text:
+            match = re.search(r'(https?://t\.me/[a-zA-Z0-9_]+)', second_message.text)
+            if match:
+                channel_link = match.group(1)
+        
+        s_msg_id = await get_message_id(client, second_message)
+        if s_msg_id:
+            break
+        else:
+            await second_message.reply("❌ Error\n\nthis Forwarded Post is not from my DB Channel or this Link is taken from DB Channel", quote = True)
+            continue
+        
+    string = f"get-{f_msg_id * abs(client.db_channel.id)}-{s_msg_id * abs(client.db_channel.id)}"
+    base64_string = await encode(string)
+    link = f"https://t.me/{client.username}?start={base64_string}"
+    
+    # Modified reply text with instruction above buttons
+    reply_text = f"""<b>🧑‍💻 Here is your code:</b> 
+<code>{base64_string}</code>
+
+<b>🔗 Here is your link:</b>
+{link}
+
+<b>📢 Original Channel:</b> {channel_link if channel_link else "Not provided"}
+
+<i>Here is your link! Click below to proceed:</i>"""
+    
+    reply_markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔁 Share URL", url=f'https://telegram.me/share/url?url={link}')],
+        [InlineKeyboardButton("Join Channel", url=channel_link)] if channel_link else []
+    ])
+    
+    await second_message.reply_text(reply_text, quote=True, reply_markup=reply_markup)
 
 @Bot.on_message(filters.private & filters.user(ADMINS) & filters.command('genlink'))
 async def link_generator(client: Client, message: Message):
     while True:
         try:
-            channel_message = await client.ask(text = "Forward Message from the DB Channel ⏩ (with Quotes)\n\nor Send the DB Channel Post link\nType /sgen for stopping.", chat_id = message.from_user.id, filters=(filters.forwarded | (filters.text & ~filters.forwarded)), timeout=60)
+            channel_message = await client.ask(text = "Forward Message from the DB Channel ⏩ (with Quotes)..\nor Send the DB Channel Post link\nType /sgen for stopping.", chat_id = message.from_user.id, filters=(filters.forwarded | (filters.text & ~filters.forwarded)), timeout=60)
         except Exception:
             return
-        
         if channel_message.text == "/sgen":
             return
         
-        if channel_message.text.startswith("https://t.me/"):
-            channel_link = channel_message.text.strip()
-            encoded_link = base64.urlsafe_b64encode(channel_link.encode()).decode()
-            generated_link = f"https://t.me/{client.username}?start=join_{encoded_link}"
-            await channel_message.reply_text(f"<b>🔗 Here is your generated channel link:</b>\n{generated_link}")
-            return
+        # Extract channel link if provided
+        channel_link = None
+        if not channel_message.forward_from_chat and channel_message.text:
+            match = re.search(r'(https?://t\.me/[a-zA-Z0-9_]+)', channel_message.text)
+            if match:
+                channel_link = match.group(1)
         
         msg_id = await get_message_id(client, channel_message)
         if msg_id:
@@ -32,18 +100,21 @@ async def link_generator(client: Client, message: Message):
     
     base64_string = await encode(f"get-{msg_id * abs(client.db_channel.id)}")
     link = f"https://t.me/{client.username}?start={base64_string}"
-    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(f"🔁 Share URL", url=f'https://telegram.me/share/url?url={link}')]])
-    await channel_message.reply_text(f"<b>🧑‍💻 Here is your code : \n<code>{base64_string}</code></b>\n\n<b>🔗 Here is your link : </b>\n{link}", quote=True, reply_markup=reply_markup)
+    
+    # Modified reply text with instruction above buttons
+    reply_text = f"""<b>🧑‍💻 Here is your code:</b> 
+<code>{base64_string}</code>
 
-@Bot.on_message(filters.regex(r'^/start join_(.*)'))
-async def join_channel(client: Client, message: Message):
-    encoded_link = message.matches[0].group(1)
-    try:
-        channel_link = base64.urlsafe_b64decode(encoded_link).decode()
-        join_button = InlineKeyboardMarkup(
-            [[InlineKeyboardButton("Join Channel", url=channel_link)]]
-        )
-        await message.reply("Here is your link! Click below to proceed:", reply_markup=join_button)
-    except Exception as e:
-        await message.reply("Invalid link or error occurred.")
-        
+<b>🔗 Here is your link:</b>
+{link}
+
+<b>📢 Original Channel:</b> {channel_link if channel_link else "Not provided"}
+
+<i>Here is your link! Click below to proceed:</i>"""
+    
+    reply_markup = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔁 Share URL", url=f'https://telegram.me/share/url?url={link}')],
+        [InlineKeyboardButton("Join Channel", url=channel_link)] if channel_link else []
+    ])
+    
+    await channel_message.reply_text(reply_text, quote=True, reply_markup=reply_markup)
