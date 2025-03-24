@@ -43,34 +43,24 @@ async def batch(client: Client, message: Message):
     await second_message.reply_text(f"<b>🧑‍💻 Here is your code : \n<code>{base64_string}</code></b>\n\n<b>🔗 Here is your link :</b>\n{link}", quote=True, reply_markup=reply_markup)
 
 
+
 @Bot.on_message(filters.private & filters.user(ADMINS) & filters.command('genlink'))
 async def link_generator(client: Client, message: Message):
-    # Only work when /genlink is sent as reply to a file
-    if not message.reply_to_message:
-        await message.reply(
-            "⚠️ **How to use:**\n"
-            "1. Send any file to bot\n"
-            "2. **Reply** to that file with `/genlink` command",
-            quote=True
-        )
-        return
-
-    # Check if the replied message contains a file
-    channel_message = message.reply_to_message
-    if not (channel_message.document or channel_message.video or channel_message.audio):
-        await message.reply("❌ Please reply to a **file** with /genlink command", quote=True)
-        return
-
-    # Generate link using the file's message ID
-    msg_id = channel_message.id
+    while True:
+        try:
+            channel_message = await client.ask(text = "Forward Message from the DB Channel ⏩ (with Quotes)..\nor Send the DB Channel Post link\nType /sgen for stopping.", chat_id = message.from_user.id, filters=(filters.forwarded | (filters.text & ~filters.forwarded)), timeout=60)
+        except Exception:
+            return
+        if channel_message.text == "/sgen":
+            return
+        msg_id = await get_message_id(client, channel_message)
+        if msg_id:
+            break
+        else:
+            await channel_message.reply("❌ Error\n\nthis Forwarded Post is not from my DB Channel or this Link is not taken from DB Channel", quote = True)
+            continue
     base64_string = await encode(f"get-{msg_id * abs(client.db_channel.id)}")
     link = f"https://t.me/{client.username}?start={base64_string}"
-    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🔁 Share URL", url=f'https://telegram.me/share/url?url={link}')]])
+    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton(f"🔁 Share URL", url=f'https://telegram.me/share/url?url={link}')]])
+    await channel_message.reply_text(f"<b>🧑‍💻 Here is your code : \n<code>{base64_string}</code></b>\n\n<b>🔗 Here is your link : </b>\n{link}", quote=True, reply_markup=reply_markup)
     
-    await message.reply_text(
-        f"<b>✅ Link Generated Successfully</b>\n\n"
-        f"<b>🧑‍💻 Code:</b> <code>{base64_string}</code>\n"
-        f"<b>🔗 Link:</b> {link}",
-        quote=True,
-        reply_markup=reply_markup
-    )
