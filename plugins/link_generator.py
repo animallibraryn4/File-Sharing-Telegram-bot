@@ -87,7 +87,8 @@ async def link_generator(client: Client, message: Message):
         reply_markup=reply_markup
     )
 
-# Explicitly ignore all non-command files/media
-@Bot.on_message(filters.private & (filters.document | filters.video | filters.audio | filters.photo) & ~filters.command)
+# Fixed version to ignore files without commands
+@Bot.on_message(filters.private & (filters.document | filters.video | filters.audio | filters.photo))
 async def ignore_files(client: Client, message: Message):
-    pass
+    if not message.text or not message.text.startswith('/'):
+        return
