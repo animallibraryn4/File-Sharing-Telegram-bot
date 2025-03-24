@@ -9,66 +9,34 @@ import re
 async def link_generator(client: Client, message: Message):
     while True:
         try:
-            channel_message = await client.ask(
-                text="Forward Message from DB Channel (with Quotes) or Send Post Link\nType /cancel to stop",
+            user_msg = await client.ask(
+                text="🔗 Send me ANY link (channel/post/URL)\nType /cancel to stop",
                 chat_id=message.from_user.id,
-                filters=(filters.forwarded | (filters.text & ~filters.forwarded)),
+                filters=filters.text,
                 timeout=60
             )
-        except Exception:
-            return
+            if user_msg.text == "/cancel":
+                return
+
+            # Store the original link exactly as sent by user
+            original_link = user_msg.text.strip()
             
-        if channel_message.text == "/cancel":
-            return
-        
-        # Extract channel info
-        channel_link = None
-        channel_id = None
-        post_id = None
-        
-        # If message contains a link
-        if not channel_message.forward_from_chat and channel_message.text:
-            match = re.search(r't\.me/(?:c/)?([a-zA-Z0-9_]+)/(\d+)', channel_message.text)
-            if match:
-                channel_id = match.group(1)
-                post_id = match.group(2)
-                channel_link = f"https://t.me/c/{channel_id}/{post_id}"
-        
-        # Get message ID from forwarded message or link
-        msg_id = await get_message_id(client, channel_message)
-        
-        if msg_id:
+            # Always generate link (no DB channel checks)
+            string = f"redirect-{original_link}"
+            base64_string = await encode(string)  # Ensure your encode() handles URLs
+            bot_link = f"https://t.me/{client.username}?start={base64_string}"
+
+            # Response to admin
+            await user_msg.reply_text(
+                f"**Generated Link:**\n{bot_link}",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔗 Share", url=f'https://t.me/share/url?url={bot_link}')]
+                ]),
+                quote=True
+            )
             break
-        else:
-            await channel_message.reply("❌ Error: Not from DB Channel or invalid link", quote=True)
-            continue
-    
-    # Create the encoded string with channel info if available
-    string = f"get-{msg_id * abs(client.db_channel.id)}"
-    if channel_id and post_id:
-        string += f"-chnl_{channel_id}_{post_id}"
-    
-    base64_string = await encode(string)
-    link = f"https://t.me/{client.username}?start={base64_string}"
-    
-    # Prepare response with buttons
-    reply_text = f"""<b>Generated Link:</b>
-{link}
 
-<b>Original Channel:</b> {channel_link if channel_link else "Not specified"}
-
-<i>Share this link with others!</i>"""
-    
-    buttons = [
-        [InlineKeyboardButton("🔗 Share Link", url=f'https://telegram.me/share/url?url={link}')]
-    ]
-    
-    # Add Join button if channel link available
-    if channel_link:
-        buttons.append([InlineKeyboardButton("📢 Join Channel", url=channel_link)])
-    
-    await channel_message.reply_text(
-        reply_text,
-        quote=True,
-        reply_markup=InlineKeyboardMarkup(buttons)
-    )
+        except Exception as e:
+            print(e)
+            await message.reply("❌ Error, try again")
+            break
