@@ -50,8 +50,7 @@ async def link_generator(client: Client, message: Message):
         await message.reply(
             "⚠️ **How to use:**\n"
             "1. Send any file to bot\n"
-            "2. **Reply** to that file with `/genlink` command\n\n"
-            "Or forward a message from DB Channel",
+            "2. **Reply** to that file with `/genlink` command",
             quote=True
         )
         return
@@ -62,19 +61,8 @@ async def link_generator(client: Client, message: Message):
         await message.reply("❌ Please reply to a **file** with /genlink command", quote=True)
         return
 
-    # Try to generate link
-    msg_id = await get_message_id(client, channel_message)
-    if not msg_id:
-        await message.reply(
-            "❌ **This file is not from DB Channel**\n\n"
-            "Please make sure:\n"
-            "1. File is forwarded from your DB Channel\n"
-            "2. Bot is admin in DB Channel",
-            quote=True
-        )
-        return
-
-    # Generate and send link
+    # Generate link using the file's message ID
+    msg_id = channel_message.id
     base64_string = await encode(f"get-{msg_id * abs(client.db_channel.id)}")
     link = f"https://t.me/{client.username}?start={base64_string}"
     reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🔁 Share URL", url=f'https://telegram.me/share/url?url={link}')]])
