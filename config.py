@@ -32,7 +32,7 @@ API_HASH = os.environ.get("API_HASH", "09b09f3e2ff1306da4a19888f614d937")
 #your channel_id from https://t.me/MissRose_bot by forwarding dummy message to rose and applying command `/id` in reply to that message
 CHANNEL_ID = int(os.environ.get("CHANNEL_ID", "-1001896877147"))
 #your id of telegram can be found by https://t.me/MissRose_bot with '/id' command
-OWNER_ID = int(os.environ.get("OWNER_ID", "Anime_Library_N4"))
+OWNER_ID = int(os.environ.get("OWNER_ID", "5380609667"))
 #port set to default 8080
 PORT = os.environ.get("PORT", "9090")
 #your database url mongodb only You can use mongo atlas free cloud database
@@ -45,7 +45,7 @@ TG_BOT_WORKERS = int(os.environ.get("TG_BOT_WORKERS", "60"))
 #your start default command message.
 START_MSG = os.environ.get("START_MESSAGE", "Hello {first}\n\nI can store private files in Specified Channel and other users can access it from special link. 💾")
 #your telegram tag without @
-OWNER_TAG = os.environ.get("OWNER_TAG", "N4_Links_bot")
+OWNER_TAG = os.environ.get("OWNER_TAG", "Anime_Library_N4")
 #Time in seconds for message delete, put 0 to never delete
 TIME = int(os.environ.get("TIME", "60"))
 
