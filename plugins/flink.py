@@ -1,12 +1,12 @@
-from pyrogram import Client, filters
+from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
 import re
-from bot import Bot  # Ensure this matches your bot instance
-from config import ADMINS  # Ensure this is a list
+from bot import Bot  # ✅ Bot instance को Import करो
+from config import OWNER_ID  # ✅ Owner ID सही करो
 
 flink_formats = {}
 
-@Bot.on_message(filters.command("flink") & filters.user(ADMINS))
+@Bot.on_message(filters.command("flink") & filters.user(OWNER_ID))
 async def flink_command(client, message: Message):
     chat_id = message.chat.id
     flink_formats[chat_id] = {}  # Reset format for new request
@@ -33,7 +33,7 @@ async def set_format_callback(client, query):
         "Each value represents the number of messages for that quality."
     )
 
-@Bot.on_message(filters.text & filters.user(ADMINS))
+@Bot.on_message(filters.text & filters.user(OWNER_ID))
 async def save_format(client, message: Message):
     chat_id = message.chat.id
     if chat_id in flink_formats:
@@ -58,7 +58,7 @@ async def start_process(client, query):
         "📌 Send the post link from the database channel."
     )
 
-@Bot.on_message(filters.text & filters.regex(r"https://t\.me/c/\d+/\d+") & filters.user(ADMINS))
+@Bot.on_message(filters.text & filters.regex(r"https://t\.me/c/\d+/\d+") & filters.user(OWNER_ID))
 async def generate_formatted_links(client, message: Message):
     chat_id = message.chat.id
     if chat_id not in flink_formats or not flink_formats[chat_id]:
