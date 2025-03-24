@@ -45,36 +45,44 @@ async def batch(client: Client, message: Message):
 
 @Bot.on_message(filters.private & filters.user(ADMINS) & filters.command('genlink'))
 async def link_generator(client: Client, message: Message):
-    # Check if the command is sent as a reply to a file
-    if message.reply_to_message:
-        channel_message = message.reply_to_message
-        msg_id = await get_message_id(client, channel_message)
-        
-        if msg_id:
-            base64_string = await encode(f"get-{msg_id * abs(client.db_channel.id)}")
-            link = f"https://t.me/{client.username}?start={base64_string}"
-            reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🔁 Share URL", url=f'https://telegram.me/share/url?url={link}')]])
-            await message.reply_text(f"<b>🧑‍💻 Here is your code : \n<code>{base64_string}</code></b>\n\n<b>🔗 Here is your link : </b>\n{link}", quote=True, reply_markup=reply_markup)
-        else:
-            await message.reply("❌ Error\n\nThis file is not from my DB Channel", quote=True)
-    else:
-        # If not a reply, ask to forward a message
-        try:
-            channel_message = await client.ask(
-                text="Please reply to a file with /genlink command\n\nor\n\nForward a message from DB Channel ⏩ (with Quotes)\nor Send the DB Channel Post link\nType /sgen to cancel",
-                chat_id=message.from_user.id,
-                filters=(filters.forwarded | (filters.text & ~filters.forwarded)),
-                timeout=60
-            )
-            if channel_message.text == "/sgen":
-                return
-            msg_id = await get_message_id(client, channel_message)
-            if msg_id:
-                base64_string = await encode(f"get-{msg_id * abs(client.db_channel.id)}")
-                link = f"https://t.me/{client.username}?start={base64_string}"
-                reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🔁 Share URL", url=f'https://telegram.me/share/url?url={link}')]])
-                await message.reply_text(f"<b>🧑‍💻 Here is your code : \n<code>{base64_string}</code></b>\n\n<b>🔗 Here is your link : </b>\n{link}", quote=True, reply_markup=reply_markup)
-            else:
-                await channel_message.reply("❌ Error\n\nThis is not from my DB Channel", quote=True)
-        except Exception:
-            return
+    # Only work when /genlink is sent as reply to a file
+    if not message.reply_to_message:
+        await message.reply(
+            "⚠️ **How to use:**\n"
+            "1. Send any file to bot\n"
+            "2. **Reply** to that file with `/genlink` command\n\n"
+            "Or forward a message from DB Channel",
+            quote=True
+        )
+        return
+
+    # Check if the replied message contains a file
+    channel_message = message.reply_to_message
+    if not (channel_message.document or channel_message.video or channel_message.audio):
+        await message.reply("❌ Please reply to a **file** with /genlink command", quote=True)
+        return
+
+    # Try to generate link
+    msg_id = await get_message_id(client, channel_message)
+    if not msg_id:
+        await message.reply(
+            "❌ **This file is not from DB Channel**\n\n"
+            "Please make sure:\n"
+            "1. File is forwarded from your DB Channel\n"
+            "2. Bot is admin in DB Channel",
+            quote=True
+        )
+        return
+
+    # Generate and send link
+    base64_string = await encode(f"get-{msg_id * abs(client.db_channel.id)}")
+    link = f"https://t.me/{client.username}?start={base64_string}"
+    reply_markup = InlineKeyboardMarkup([[InlineKeyboardButton("🔁 Share URL", url=f'https://telegram.me/share/url?url={link}')]])
+    
+    await message.reply_text(
+        f"<b>✅ Link Generated Successfully</b>\n\n"
+        f"<b>🧑‍💻 Code:</b> <code>{base64_string}</code>\n"
+        f"<b>🔗 Link:</b> {link}",
+        quote=True,
+        reply_markup=reply_markup
+    )
