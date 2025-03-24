@@ -6,6 +6,7 @@ from config import OWNER_ID  # ✅ Owner ID सही करो
 
 flink_formats = {}
 
+print("🚀 Flink plugin loaded successfully!")  # ✅ Debug
 @Bot.on_message(filters.command("flink") & filters.user(OWNER_ID))
 async def flink_command(client, message: Message):
     chat_id = message.chat.id
