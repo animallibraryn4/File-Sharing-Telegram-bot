@@ -32,7 +32,7 @@ async def set_format_callback(client, query):
         "Each value represents the number of messages for that quality."
     )
 
-@Client.on_message(filters.text & filters.user(ADMIN_ID))
+@Client.on_message(filters.text & filters.user(OWNER_ID))
 async def save_format(client, message: Message):
     chat_id = message.chat.id
     if chat_id in flink_formats:
@@ -57,7 +57,7 @@ async def start_process(client, query):
         "📌 Send the post link from the database channel."
     )
 
-@Client.on_message(filters.text & filters.regex(r"https://t\.me/c/\d+/\d+") & filters.user(ADMIN_ID))
+@Client.on_message(filters.text & filters.regex(r"https://t\.me/c/\d+/\d+") & filters.user(OWNER_ID))
 async def generate_formatted_links(client, message: Message):
     chat_id = message.chat.id
     if chat_id not in flink_formats or not flink_formats[chat_id]:
